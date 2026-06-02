@@ -1,77 +1,83 @@
-# Cemu SDL Fix (macOS)
+# Cemu SDL Fix (macOS) — technical overview
 
-Fixes empty **SDLController** list in Cemu when macOS / Steam / browsers see your pad, but Cemu’s bundled SDL 2.30.3 has no mapping (e.g. **8BitDo Ultimate 2C** over Bluetooth).
+## Problem
 
-## Security / source transparency
+| Layer | What you see |
+|-------|----------------|
+| macOS | Controller works in System Settings / Game Controllers |
+| Cemu → SDLController | **Empty list** |
+| Cause | Cemu’s SDL build has **no gamecontroller mapping** for your device’s GUID |
 
-See [SECURITY.md](SECURITY.md). Every release includes GitHub **Source code** archives and SHA-256 checksums for prebuilt launcher binaries.
+Cemu does **not** list all joysticks. It uses SDL’s **gamepad** API (`SDL_GetGamepads` on SDL 2.30.x / gamepad subsystem). SDL only exposes a device as a gamepad when a line exists in the gamecontroller database:
 
-## Plug and play (share with friends)
-
-1. Download or clone this repo.
-2. **Double-click `CemuSDLFix.app`** (build it once below if missing).
-3. Connect the controller → start **Cemu from Dock** → **Input → SDLController**.
-
-No terminal, no Steam Input, no DSU bridge.
-
-### Build the installer app (maintainers)
-
-```bash
-./scripts/build_cemu_sdl_fix_app.sh
-zip -r CemuSDLFix.zip CemuSDLFix.app   # upload this
+```text
+<GUID>,<name>,a:b0,b:b1,...,platform:Mac OS X
 ```
 
-### Terminal-only install
+Cemu ships a **frozen** copy of that database inside the app. New controllers (Ultimate 2C BT, etc.) ship after that DB was cut — so they stay “joystick only” and Cemu ignores them.
+
+## Why the fix works
+
+1. **Merge** a larger mapping file (Cemu’s DB + community entries + patches).
+2. **Inject** it via standard SDL environment variables **before** Cemu starts:
+   - `SDL_GAMECONTROLLERCONFIG_FILE` → path to full merged file
+   - `SDL_GAMECONTROLLERCONFIG` → high-priority inline lines (device patches)
+3. **Ensure injection on Dock launch** with a Mach-O launcher as `CFBundleExecutable` that `setenv` + `exec` the real binary (`*.real`).
+
+SDL then classifies your pad as a gamecontroller; Cemu’s existing SDL input path works unchanged.
+
+No Cemu recompile. No runtime hook. No network.
+
+## Device support
+
+### Not limited to 8BitDo Ultimate 2C
+
+Ultimate 2C is the **original tested device**; the fix is **generic SDL mapping injection**.
+
+| Source | Contents |
+|--------|----------|
+| `scripts/data/gamecontrollerdb.txt` | ~190 mappings (8BitDo, HORI, ASUS ROG, PlayStation-style, Xbox-style, …) |
+| `scripts/data/gamecontroller_patches.txt` | Devices **missing from Cemu’s embedded DB** (Ultimate 2C Mac/Win/Linux GUIDs, etc.) |
+| `~/Library/Application Support/Cemu/gamecontroller_user.txt` | Per-user additions (merged on install) |
+
+### Will work
+
+- Controller visible in macOS.
+- A mapping exists for **your GUID** + connection (USB/BT can differ).
+- You use Cemu’s **SDL controller** input (not only DSU).
+
+### Might not work
+
+- macOS does not see the device.
+- GUID not in any DB and you have not added a mapping.
+- Pad needs non-SDL software (some mobile/X-input modes).
+- Wrong Cemu app binary (Metal vs vanilla) without running install on that `.app`.
+
+### Find your GUID (macOS)
 
 ```bash
-chmod +x scripts/*.sh scripts/lib/*.sh
-./scripts/install_cemu_sdl_fix.sh --force
+./scripts/sdl_cemu_diagnose.sh
 ```
 
-Uninstall: `./scripts/uninstall_cemu_sdl_fix.sh`
+Or with Homebrew SDL2: init joystick subsystem, print `SDL_JoystickGetGUIDString` and `SDL_IsGameController`.
 
-## What the fix actually does
-
-| Problem | Cause |
-|--------|--------|
-| Cemu shows **no controllers** | Cemu only lists **gamepads** (`SDL_GetGamepads`), not raw joysticks |
-| Your pad is invisible | Bundled SDL DB is missing your device’s **GUID mapping** |
-| Dock launch failed earlier | `Info.plist` env alone is unreliable on recent macOS |
-
-| Solution | How |
-|----------|-----|
-| **Mapping database** | Merged `gamecontrollerdb.txt` + patches (Ultimate 2C Mac/Win/Linux GUIDs) into the app |
-| **SDL env at startup** | Tiny **Mach-O launcher** (~50 KB) replaces `Cemu` / `Cemu_Metal_arm64`; sets `SDL_GAMECONTROLLERCONFIG` + `SDL_GAMECONTROLLERCONFIG_FILE`, then `exec`s `*.real` (real Cemu binary) |
-| **Codesign** | Ad-hoc re-sign after patching so macOS still opens the app |
-
-Nothing runs in the background. No network. No Cemu source rebuild.
-
-## Performance
-
-**Effectively zero** in-game:
-
-- Launcher runs once at app start, `exec` into Cemu — no extra process while playing.
-- ~50 KB stub; no polling, no bridge, no CPU loop.
-- SDL mapping lookup is the same cost Cemu already pays; you only added entries to the DB.
-- Real game binary is unchanged (`Cemu_Metal_arm64.real` / `Cemu.real`).
-
-## Metal vs vanilla Cemu
-
-Separate apps — installer patches **all** `*Cemu*.app` it finds (Applications, Desktop, etc.). Use the same icon you installed into.
-
-## Custom mappings
-
-Append lines to:
-
-`~/Library/Application Support/Cemu/gamecontroller_user.txt`
-
-Then re-run install with `--force`.
-
-## Files
+## Install artifacts (per Cemu.app)
 
 | Path | Role |
 |------|------|
-| `scripts/install_cemu_sdl_fix.sh` | One-time patch |
-| `scripts/bin/cemu_sdl_launcher_*` | Prebuilt Dock launchers |
-| `scripts/data/gamecontroller_patches.txt` | Device patches |
-| `CemuSDLFix.app` | Double-click installer |
+| `Contents/MacOS/<Binary>` | Open-source launcher |
+| `Contents/MacOS/<Binary>.real` | Original Cemu executable |
+| `Contents/Resources/cemu_sdl_mappings.txt` | Merged DB |
+| `Contents/Resources/cemu_sdl_patches_inline.txt` | Inline patch lines for launcher |
+
+## Security / source transparency
+
+See [SECURITY.md](SECURITY.md).
+
+## Quick commands
+
+```bash
+./scripts/install_cemu_sdl_fix.sh --force   # install / refresh
+./scripts/uninstall_cemu_sdl_fix.sh         # remove patch
+./scripts/verify_build.sh                   # rebuild launcher, print SHA-256
+```
