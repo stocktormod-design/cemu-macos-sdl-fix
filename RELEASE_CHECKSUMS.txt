@@ -1,6 +1,6 @@
-# SHA-256 checksums for cemu-macos-sdl-fix v1.1.0
+# SHA-256 checksums for cemu-macos-sdl-fix v1.1.1
 # Verify: ./scripts/verify_build.sh
 
 31645257c2abf5b70957086b28441c8bde9bee590a900f4ec5e2dde943824cc6  scripts/bin/cemu_sdl_launcher_arm64
 9bccb845a1640223b4b69078c3e5412ead8dc857527512705b82d2157fb7c390  scripts/bin/cemu_sdl_launcher_x86_64
-3b2d5a2085db3c30fc5dcaa41f3eaa4b57bd71d85f4a11da341fa1d418e52d0d  CemuSDLFix.zip
+bc1bb8760f24f31c50d855a7de885a840bfa34aba6009d8e4b689ef2059f6700  CemuSDLFix.zip
