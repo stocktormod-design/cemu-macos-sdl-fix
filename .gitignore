@@ -1,0 +1,18 @@
+# Personal / game files (not part of this tool)
+BOTW-update-v208-extracted/
+The Legend of Zelda*/
+*.h3
+*.wud
+*.wux
+*.rpx
+
+# macOS
+.DS_Store
+
+# Build output (rebuild with ./scripts/build_cemu_sdl_fix_app.sh)
+CemuSDLFix.app/
+CemuSDLFix.zip
+
+# Temp / local
+*.log
+/tmp/
