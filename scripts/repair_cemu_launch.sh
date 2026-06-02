@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fix "appen har ikke tillatelse til å åpne null" after SDL fix install.
+# Fix macOS "cannot open null" after SDL fix (broken signature until re-sign).
 # Cause: Info.plist was edited → broken code signature until re-signed.
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

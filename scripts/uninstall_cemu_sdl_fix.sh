@@ -26,11 +26,11 @@ uninstall_app() {
 	rm -f "${res}/${CEMU_SDL_MAPPINGS_NAME}" "${res}/${CEMU_SDL_MARKER}" \
 		"${res}/gamecontrollerdb.txt" "${res}/gamecontroller_patches.txt" \
 		"${res}/.cemu_sdl_fix_launcher"
-	echo "✓ Fjernet fra: $(basename "$app")"
+	echo "✓ Removed from: $(basename "$app")"
 }
 
 apps=()
 while IFS= read -r a; do [[ -n "$a" ]] && apps+=("$a"); done < <(cemu_discover_apps "${EXPLICIT_APP:-}")
-[[ ${#apps[@]} -gt 0 ]] || { echo "Fant ingen Cemu.app." >&2; exit 1; }
+[[ ${#apps[@]} -gt 0 ]] || { echo "No Cemu.app found." >&2; exit 1; }
 
 for a in "${apps[@]}"; do uninstall_app "$a"; done

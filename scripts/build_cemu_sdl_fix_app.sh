@@ -47,9 +47,9 @@ cat >"${OUT_APP}/Contents/Info.plist" <<'PLIST'
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>2.0.0</string>
+	<string>1.1.0</string>
 	<key>CFBundleVersion</key>
-	<string>2</string>
+	<string>3</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
 	<key>NSHighResolutionCapable</key>
@@ -76,11 +76,14 @@ mkdir -p "$(dirname "$LOG")"
 LIST=$("${ROOT}/install_cemu_sdl_fix.sh" --list 2>/dev/null | tail -n +2 || true)
 
 /usr/bin/osascript <<APPLESCRIPT
-set msg to "SDL gamepad-fix installert.
+set msg to "SDL gamepad fix installed.
 
-Dobbeltklikk er ferdig — start Cemu fra Dock og sjekk Input → SDLController.
+You are done — launch Cemu from the Dock and check Input → SDLController.
 
-Logg: ${LOG}
+Full source & security info:
+https://github.com/stocktormod-design/cemu-macos-sdl-fix
+
+Log: ${LOG}
 
 ${LIST}"
 display dialog msg buttons {"OK"} default button "OK" with title "Cemu SDL Fix"

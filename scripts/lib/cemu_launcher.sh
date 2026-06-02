@@ -41,11 +41,11 @@ cemu_install_sdl_launcher() {
 	fi
 
 	launcher="$(cemu_launcher_bin_for_exe "$exe")" || {
-		echo "  ✗ Ukjent arkitektur for $name — kjør: ./scripts/build_cemu_sdl_launcher.sh" >&2
+		echo "  ✗ Unknown CPU arch for $name — run: ./scripts/build_cemu_sdl_launcher.sh" >&2
 		return 1
 	}
 	[[ -x "$launcher" ]] || {
-		echo "  ✗ Mangler $launcher — kjør: ./scripts/build_cemu_sdl_launcher.sh" >&2
+		echo "  ✗ Missing $launcher — run: ./scripts/build_cemu_sdl_launcher.sh" >&2
 		return 1
 	}
 

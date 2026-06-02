@@ -2,6 +2,10 @@
 
 Fixes empty **SDLController** list in Cemu when macOS / Steam / browsers see your pad, but Cemu’s bundled SDL 2.30.3 has no mapping (e.g. **8BitDo Ultimate 2C** over Bluetooth).
 
+## Security / source transparency
+
+See [SECURITY.md](SECURITY.md). Every release includes GitHub **Source code** archives and SHA-256 checksums for prebuilt launcher binaries.
+
 ## Plug and play (share with friends)
 
 1. Download or clone this repo.

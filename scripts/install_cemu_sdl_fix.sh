@@ -47,9 +47,9 @@ apply_plist_and_sign() {
 	local app="$1" mappings="$2"
 	cemu_sdl_patches_config "$BUNDLED_PATCH" | cemu_plist_set_sdl_environment "$app" "$mappings"
 	if cemu_app_resign "$app"; then
-		echo "  → codesign OK (nødvendig etter plist-endring)"
+		echo "  → codesign OK (required after plist edit)"
 	else
-		echo "  ⚠ codesign feilet — høyreklikk Cemu → Åpne, eller: xattr -cr \"$app\"" >&2
+		echo "  ⚠ codesign failed — right-click Cemu → Open, or: xattr -cr \"$app\"" >&2
 	fi
 }
 
@@ -61,17 +61,17 @@ install_into_app() {
 
 	label="$(basename "$app")"
 	cemu_can_patch "$app" || {
-		echo "✗ Skrivebeskyttet: $label" >&2
+		echo "✗ Read-only (cannot patch): $label" >&2
 		return 1
 	}
 
 	# Always restore Mach-O as CFBundleExecutable (old v1 used bash wrapper — breaks Dock)
 	if cemu_restore_mach_o_launcher "$app" >/dev/null; then
-		echo "  → gjenopprettet ekte Cemu-binær (fjernet bash-wrapper)"
+		echo "  → restored real Cemu binary (removed old bash wrapper)"
 	fi
 
 	name="$(cemu_find_launcher_name "$app")" || {
-		echo "✗ Fant ikke launcher i $label" >&2
+		echo "✗ Could not find launcher binary in $label" >&2
 		return 1
 	}
 
@@ -83,7 +83,7 @@ install_into_app() {
 	local bad=0
 	bad="$(grep -c ',$' "$mappings" 2>/dev/null | head -1 | tr -d '[:space:]')"
 	bad="${bad:-0}"
-	[[ "${bad:-0}" -eq 0 ]] || echo "  ⚠ advarsel: ${bad} linjer med ugyldig komma på slutten" >&2
+	[[ "${bad:-0}" -eq 0 ]] || echo "  ⚠ warning: ${bad} mapping lines with invalid trailing comma" >&2
 
 	apply_plist_and_sign "$app" "$mappings"
 	cemu_install_sdl_launcher "$app" "$BUNDLED_PATCH" || return 1
@@ -96,12 +96,12 @@ install_into_app() {
 	printf 'v2-plist %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" >"${res}/${CEMU_SDL_MARKER}"
 
 	if [[ $was_patched -eq 1 ]]; then
-		echo "✓ Oppdatert: $label ($name)"
+		echo "✓ Updated: $label ($name)"
 	else
-		echo "✓ Installert: $label ($name)"
+		echo "✓ Installed: $label ($name)"
 	fi
-	echo "    Start Cemu fra Dock/Launchpad (Mach-O launcher setter SDL-env)"
-	echo "    $(wc -l <"$mappings" | tr -d ' ') mapping-linjer"
+	echo "    Launch Cemu from Dock (Mach-O launcher sets SDL env)"
+	echo "    $(wc -l <"$mappings" | tr -d ' ') mapping lines"
 }
 
 apps=()
@@ -118,7 +118,7 @@ else
 	fi
 fi
 
-[[ ${#apps[@]} -gt 0 ]] || { echo "Fant ingen Cemu.app." >&2; exit 1; }
+[[ ${#apps[@]} -gt 0 ]] || { echo "No Cemu.app found." >&2; exit 1; }
 
 if [[ $LIST_ONLY -eq 1 ]]; then
 	for a in "${apps[@]}"; do
@@ -131,7 +131,7 @@ if [[ $LIST_ONLY -eq 1 ]]; then
 	exit 0
 fi
 
-echo "Installerer SDL-fix (plist-metode) i ${#apps[@]} app(s) …"
+echo "Installing SDL fix into ${#apps[@]} app(s) …"
 echo ""
 
 ok=0 fail=0
@@ -140,8 +140,8 @@ for a in "${apps[@]}"; do
 	echo ""
 done
 
-echo "Ferdig: $ok ok, $fail feilet."
+echo "Done: $ok succeeded, $fail failed."
 echo ""
-echo "Åpne Cemu som vanlig fra Dock. ./scripts/launch_cemu.sh er bare valgfri debug."
+echo "Open Cemu from Dock as usual. ./scripts/launch_cemu.sh is optional (debug)."
 
 [[ $fail -eq 0 ]]
